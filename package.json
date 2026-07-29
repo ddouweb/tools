@@ -1,0 +1,17 @@
+{
+  "name": "ai-tool",
+  "version": "0.1.0",
+  "private": true,
+  "description": "统一工具集门户与编排平台 — Unified tool portal & orchestration platform",
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @ai-tool/shared build && pnpm -r --parallel run dev",
+    "build": "pnpm --filter @ai-tool/shared build && pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test"
+  }
+}
