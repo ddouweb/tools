@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目定位
 
-ai_tool 是一个**统一的工具集门户与编排平台**（unified tool portal & orchestration platform）。它作为单一入口，把分散的各类工具聚合进来：Windows 本地脚本执行、远程 Linux / Docker 管理、Jenkins 及其增强、以及未来的工作 / 生活 / 游戏类工具。平台提供**共享的横切能力**——统一登录、权限（RBAC）、消息通知、日志管理——并支持**工具之间的关联操作**（一个工具的事件可触发另一个工具的动作）。
+tools 是一个**统一的工具集门户与编排平台**（unified tool portal & orchestration platform）。它作为单一入口，把分散的各类工具聚合进来：Windows 本地脚本执行、远程 Linux / Docker 管理、Jenkins 及其增强、以及未来的工作 / 生活 / 游戏类工具。平台提供**共享的横切能力**——统一登录、权限（RBAC）、消息通知、日志管理——并支持**工具之间的关联操作**（一个工具的事件可触发另一个工具的动作）。
 
 平台是**双向集成**的：
 - **接入（inbound）**：作为编排者，调用外部工具 / 脚本 / 系统。
@@ -73,7 +73,7 @@ Script Adapter 是"本系统接入各种脚本"的核心，须最大化灵活：
 > 项目尚未脚手架。落地时据此组织：
 
 ```
-ai_tool/
+tools/
 ├── apps/
 │   ├── server/        # NestJS 后端（平台核心 + 适配器 + action bus）
 │   └── web/           # Vue 3 前端门户

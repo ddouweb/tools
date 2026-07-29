@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue';
 import { getHealth, invokeAction, type Health } from './api';
 
 const health = ref<Health | null>(null);
-const echoInput = ref('hello ai_tool');
+const echoInput = ref('hello tools');
 const echoResult = ref<unknown>(null);
 const error = ref<string | null>(null);
 
@@ -25,10 +25,10 @@ onMounted(refresh);
 
 <template>
   <main class="wrap">
-    <h1>ai_tool <small>统一工具集门户</small></h1>
+    <h1>tools <small>统一工具集门户</small></h1>
 
     <p v-if="error" class="err">
-      后端连接失败：{{ error }}（请先启动后端：<code>pnpm --filter @ai-tool/server dev</code>）
+      后端连接失败：{{ error }}（请先启动后端：<code>pnpm --filter @tools/server dev</code>）
     </p>
 
     <section v-if="health">

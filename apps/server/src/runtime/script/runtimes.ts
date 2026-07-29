@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import type { ActionContext } from '@ai-tool/shared';
+import type { ActionContext } from '@tools/shared';
 
 export type RuntimeId = 'powershell' | 'cmd' | 'bash' | 'sh' | 'python' | 'node';
 

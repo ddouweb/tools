@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { ActionBus, AdapterEvent, LinkageRule } from '@ai-tool/shared';
+import type { ActionBus, AdapterEvent, LinkageRule } from '@tools/shared';
 import { ActionService } from './action.service';
 
 /**

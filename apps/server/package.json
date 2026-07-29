@@ -1,8 +1,8 @@
 {
-  "name": "@ai-tool/server",
+  "name": "@tools/server",
   "version": "0.1.0",
   "private": true,
-  "description": "ai_tool 平台后端 — 平台核心 + 适配器运行时 + Action Bus",
+  "description": "tools 平台后端 — 平台核心 + 适配器运行时 + Action Bus",
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ai-tool/shared": "workspace:*",
+    "@tools/shared": "workspace:*",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",

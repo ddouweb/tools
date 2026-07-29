@@ -4,7 +4,7 @@ import type {
   AdapterManifest,
   ActionDefinition,
   ActionHandler,
-} from '@ai-tool/shared';
+} from '@tools/shared';
 
 interface RegisteredAction {
   action: ActionDefinition;

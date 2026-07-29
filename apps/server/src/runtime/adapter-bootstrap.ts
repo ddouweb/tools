@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import type { Adapter } from '@ai-tool/shared';
+import type { Adapter } from '@tools/shared';
 import { AdapterRegistry } from './adapter-registry';
 
 /**

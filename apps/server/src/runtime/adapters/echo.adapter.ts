@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
-import type { Adapter } from '@ai-tool/shared';
-import { ok, reg } from '@ai-tool/shared';
+import type { Adapter } from '@tools/shared';
+import { ok, reg } from '@tools/shared';
 
 /**
  * EchoAdapter — 最小示例适配器，演示"注册即生效"的完整链路。

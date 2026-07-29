@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { ActionContext, ActionResult } from '@ai-tool/shared';
-import { fail } from '@ai-tool/shared';
+import type { ActionContext, ActionResult } from '@tools/shared';
+import { fail } from '@tools/shared';
 import { AdapterRegistry } from './adapter-registry';
 
 /**

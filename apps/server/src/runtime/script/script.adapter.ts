@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
-import type { ActionContext, ActionResult, Adapter } from '@ai-tool/shared';
-import { fail, ok, reg } from '@ai-tool/shared';
+import type { ActionContext, ActionResult, Adapter } from '@tools/shared';
+import { fail, ok, reg } from '@tools/shared';
 import { SCRIPT_CONFIG, withinAllowed, type ScriptAdapterConfig } from './script.config';
 import { runScript } from './runtimes';
 
