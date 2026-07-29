@@ -4,6 +4,8 @@ import { ActionService } from './action.service';
 import { ActionBusService } from './action-bus.service';
 import { AdapterBootstrap } from './adapter-bootstrap';
 import { EchoAdapter } from './adapters/echo.adapter';
+import { ScriptAdapter } from './script/script.adapter';
+import { SCRIPT_CONFIG, scriptConfigFromEnv } from './script/script.config';
 
 /**
  * RuntimeModule — 适配器运行时内核。
@@ -15,10 +17,12 @@ import { EchoAdapter } from './adapters/echo.adapter';
     ActionService,
     ActionBusService,
     EchoAdapter,
+    ScriptAdapter,
+    { provide: SCRIPT_CONFIG, useFactory: () => scriptConfigFromEnv() },
     {
       provide: 'ADAPTERS',
-      useFactory: (echo: EchoAdapter) => [echo],
-      inject: [EchoAdapter],
+      useFactory: (echo: EchoAdapter, script: ScriptAdapter) => [echo, script],
+      inject: [EchoAdapter, ScriptAdapter],
     },
     AdapterBootstrap,
   ],

@@ -18,8 +18,8 @@
 
 | 编号 | 主题 | 状态 |
 | ---- | ---- | ---- |
-| [0001](./specs/0001-script-adapter.md) | Script Adapter（脚本接入） | 草案 |
-| 0002 | Platform Core（登录 / RBAC / 审计 / 通知） | 待写 |
+| [0001](./specs/0001-script-adapter.md) | Script Adapter（脚本接入） | 已实现 v0.1 |
+| [0002](./specs/0002-platform-core.md) | Platform Core（登录 / RBAC / 审计 / 通知） | 草案 |
 | 0003 | SSH Adapter（远程 Linux / Docker 管理） | 待写 |
 | 0004 | HTTP Adapter（Jenkins 等第三方 API） | 待写 |
 | 0005 | Action Bus 联动规则与配置 | 待写 |

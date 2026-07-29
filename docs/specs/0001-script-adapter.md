@@ -1,6 +1,6 @@
 # 0001 — Script Adapter（脚本接入）
 
-- 状态：草案
+- 状态：已实现（v0.1）
 - 适配器 id：`script`
 - 关联：CLAUDE.md「最大化脚本接入」；后续 [0003 SSH Adapter]（远程执行）
 
@@ -112,8 +112,9 @@ z.object({
 - 返回：`ActionResult<script.run output>`。
 - 该 Action 默认 `internal`；外部系统若需调用，待 0002 RBAC 落地后按角色授权。
 
-## 8. 开放问题
+## 8. 决议（实现 v0.1 已定）
 
-- `parseJsonOutput` 解析失败时：返回 `ok:true`（有 exitCode/stdout）还是 `ok:false`？草案倾向 **`ok:true` + 附 `PARSE_OUTPUT_FAILED` 警告**，避免把"脚本业务失败"和"输出格式不符"混淆。待评审定夺。
-- `args` 注入方式（argv vs 环境变量）是否按 runtime 分策略？建议在实现时按各 runtime 惯例决定，并在 spec 补表。
-- 临时脚本文件的清理与权限位（Unix `+x`）策略。
+- `parseJsonOutput` 解析失败 → **`ok:true`，`data` 留空并记 `PARSE_OUTPUT_FAILED` 警告日志**；脚本成败仍以 `exitCode` 为准，不把"输出格式不符"误判为执行失败。
+- `args` 注入 → **统一以 `ARG_<KEY>` 环境变量注入**（内联与文件模式一致、跨运行时通用）；`env` 字段直接合并进子进程环境。
+- 文件模式目前直接由解释器执行目标路径，未做临时文件落盘；如未来需要内联转临时文件，再补充清理与 Unix 权限位策略。
+- 默认 `SCRIPT_ALLOWED_RUNTIMES=node`（默认最小开放），powershell/cmd/bash/sh/python 须显式配置开启。
