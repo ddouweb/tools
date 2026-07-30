@@ -1,23 +1,61 @@
-// 后端 API 客户端（开发期经 Vite 代理 /api -> http://localhost:3000）
 const BASE = '/api';
 
-export interface Health {
-  status: string;
-  adapters: { id: string; name: string; version: string }[];
-  actions: { id: string; name: string; visibility: string; tags: string[] }[];
+export class UnauthorizedError extends Error {}
+
+export function getToken(): string | null {
+  return localStorage.getItem('tools.token');
+}
+export function setToken(t: string | null): void {
+  if (t) localStorage.setItem('tools.token', t);
+  else localStorage.removeItem('tools.token');
 }
 
-export async function getHealth(): Promise<Health> {
-  const res = await fetch(`${BASE}/health`);
-  if (!res.ok) throw new Error(`health ${res.status}`);
-  return res.json() as Promise<Health>;
+export interface AuthUser {
+  id: string;
+  username: string;
+  isAdmin: boolean;
+  email?: string | null;
 }
 
-export async function invokeAction(actionId: string, input: unknown): Promise<unknown> {
-  const res = await fetch(`${BASE}/actions/${encodeURIComponent(actionId)}/invoke`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  });
+async function req(path: string, opts: RequestInit = {}): Promise<any> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...((opts.headers as Record<string, string> | undefined) ?? {}),
+  };
+  const tok = getToken();
+  if (tok) headers['Authorization'] = `Bearer ${tok}`;
+  const res = await fetch(`${BASE}${path}`, { ...opts, headers });
+  if (res.status === 401) {
+    setToken(null);
+    throw new UnauthorizedError();
+  }
   return res.json();
 }
+
+// Action 调用的失败（FORBIDDEN 等）仍返回 200 + {ok:false}；调用方据 .ok 判断。
+export const api = {
+  login: (username: string, password: string) =>
+    req('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  me: () => req('/auth/me'),
+  health: () => req('/health'),
+
+  invoke: (actionId: string, input: unknown) =>
+    req(`/actions/${encodeURIComponent(actionId)}/invoke`, { method: 'POST', body: JSON.stringify(input) }),
+  submit: (actionId: string, input: unknown) =>
+    req(`/actions/${encodeURIComponent(actionId)}/submit`, { method: 'POST', body: JSON.stringify(input) }),
+  listTasks: () => req('/tasks'),
+  getTask: (id: string) => req(`/tasks/${id}`),
+
+  // admin
+  users: () => req('/admin/users'),
+  createUser: (b: unknown) => req('/admin/users', { method: 'POST', body: JSON.stringify(b) }),
+  roles: () => req('/admin/roles'),
+  permissions: () => req('/admin/permissions'),
+  webhooks: () => req('/admin/notifications/webhooks'),
+  createWebhook: (b: unknown) =>
+    req('/admin/notifications/webhooks', { method: 'POST', body: JSON.stringify(b) }),
+  deleteWebhook: (id: string) => req(`/admin/notifications/webhooks/${id}`, { method: 'DELETE' }),
+  testWebhook: () => req('/admin/notifications/test', { method: 'POST' }),
+  audit: (query: string) => req(`/admin/audit?${query}`),
+  schedules: () => req('/admin/schedules'),
+};
