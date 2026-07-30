@@ -4,86 +4,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目定位
 
-tools 是一个**统一的工具集门户与编排平台**（unified tool portal & orchestration platform）。它作为单一入口，把分散的各类工具聚合进来：Windows 本地脚本执行、远程 Linux / Docker 管理、Jenkins 及其增强、以及未来的工作 / 生活 / 游戏类工具。平台提供**共享的横切能力**——统一登录、权限（RBAC）、消息通知、日志管理——并支持**工具之间的关联操作**（一个工具的事件可触发另一个工具的动作）。
+tools 是一个**统一的工具集门户与编排平台**。作为单一入口，把分散的各类工具聚合进来——本地脚本、远程 Linux/Docker、第三方 HTTP API（Jenkins 等只是其中之一，不为本项目特化），以及未来的工作/生活/游戏类工具。平台提供共享横切能力（登录、RBAC、审计、通知、任务调度），并支持工具间**关联操作**（事件触发动作）。双向集成：既调用外部工具，也对外暴露 API/API Token 供外部接入。
 
-平台是**双向集成**的：
-- **接入（inbound）**：作为编排者，调用外部工具 / 脚本 / 系统。
-- **被接入（outbound）**：对外暴露文档化的 API / Webhook / Action，让别的系统能快速接入本平台，并获得最大化支撑。
+## 技术栈
 
-## 技术栈（已决策）
+- **后端**：Node.js + NestJS + TypeScript（CommonJS）；**前端**：Vue 3 + TS + Vite；**单仓**：pnpm workspaces。
+- **DB/ORM**：Prisma v6（dev SQLite / prod Postgres）；**鉴权**：JWT access+refresh + `@node-rs/argon2`；**加密**：node:crypto AES-256-GCM；**SSH**：ssh2；**调度**：cron。
+- 平台后端语言与被接入工具的语言相互独立——工具经 SSH/exec/HTTP 被调用，因此选 Node 做平台不妨碍用 Rust/Python/Go 写单个工具组件。
 
-- **后端**：Node.js + NestJS + TypeScript
-- **前端**：Vue 3 + TypeScript + Vite（SPA 门户）
-- **包管理 / 单仓**：pnpm workspaces（monorepo）
+## 当前状态（handoff）
 
-选型理由：Node 的异步 I/O 模型契合"编排大量远程调用"的场景；NestJS 的模块 / DI / 装饰器结构与 Spring 心智模型一致，便于快速上手。注意：平台后端语言与被接入工具的语言相互独立——工具经 SSH / 本地 exec / HTTP 被调用，因此选 Node 做平台不妨碍某天用 Rust / Python / Go 写单个高性能工具组件。
+已实现（详见 `docs/README.md` 路线图）：
+- **0001 Script Adapter**、**0003 SSH Adapter**、**0004 HTTP Adapter**：三类执行原语（本地脚本 / 远程命令 / HTTP）。
+- **0002 Platform Core（全四阶段）**：登录/JWT、RBAC（Action 级+通配）、审计、通知（webhook+HMAC）、异步任务、cron 调度。
+- **凭据加密**：SshProfile / HttpCredential / Webhook secret 经 `CryptoService`(AES-256-GCM) 加密落库，主密钥 `CREDENTIALS_KEY`。
+- **0005 Action Bus 联动配置**：事件→动作的持久化规则。
+- **前端门户**：登录 + 概览 + 动作调用 + 管理界面（用户/角色/Webhooks/SSH/HTTP凭据/联动/调度/任务/审计）。
 
-## 核心架构模型
+**下一步（待用户决定）**：`docs/specs/0006-tool-as-resource.md` 已设计（草案），借鉴 K8s"一切皆资源" + OpenWrt 插件市场，引入**声明式 Tool 清单**——加工具从"写代码+重编译"降为"写清单→注册"，自动继承 RBAC/审计/联动。实现待评审。接入指南见 `docs/quick-start-tool.md`。
 
-理解本系统必先理解以下四个概念，它们贯穿所有代码：
+## 核心架构（必读）
 
-### 1. 平台核心（Platform Core）
-常驻的横切服务，所有工具复用，禁止在工具内重复造轮子：
-- **Auth**：统一登录、会话 / JWT
-- **RBAC**：用户 / 角色 / 权限，控制谁能用哪些工具的哪些动作
-- **Audit Log**：所有 Action 执行的可审计日志
-- **Notification**：消息通知（多渠道，如 Webhook / 邮件 / IM）
-- **Task / Job**：长任务、调度、异步执行（跨工具联动的基础）
+**Action 是一切能力的统一单元**。所有工具动作都以 Action 形式注册，从而统一获得调用入口、RBAC、审计、通知、调度、联动。
 
-### 2. 适配器（Adapter）
-**每一个工具集成都实现为一个 Adapter**，向核心注册自己。新增工具 = 新增一个 Adapter，不动核心。基础适配器：
-- **Script Adapter**：最大化脚本接入（见下）
-- **SSH Adapter**：远程 Linux 命令执行、Docker / 服务管理
-- **HTTP Adapter**：调用第三方 API（如 Jenkins）
+请求管线（理解这条线就理解了大半系统）：
+```
+HTTP 请求 → 全局 AuthGuard(JWT access 或 API Token → req.user)
+         → 控制器 → ActionService.run（授权+审计咽喉）
+              ① 查 AdapterRegistry  ② RBAC（isAdmin 旁路，否则 action:<id>/通配）
+              ③ zod 校验输入        ④ 执行 adapter handler
+              ⑤ 写 AuditLog（回填 meta.auditLogId）+ emit action.<id>.succeeded/failed
+         →（事件经 ActionBusService 匹配 LinkageRule → 异步触发目标 Action，单跳防递归）
+```
 
-### 3. 动作（Action）
-Adapter 把自己能做的事注册成一个个 Action，带**类型化的输入 schema 和输出 schema**。RBAC 授权与审计日志都以 Action 为粒度。外部系统也可通过 API 触发 Action（实现"被接入"）。
+两层工具模型：
+- **执行原语（Primitive Adapters，代码）**：`script`/`ssh`/`http`——"怎么执行"，少数稳定。
+- **声明式 Tool（资源，0006 待实现）**：清单声明 Action 并 `bind` 到一个原语 + 参数模板——"做什么"，零代码接入。
 
-### 4. 动作总线（Action Bus）
-实现**工具间关联操作**的机制。Adapter 可声明"事件"，事件可触发其它 Adapter 的 Action（声明式联动，禁止硬编码）。例：Jenkins 构建失败 → 触发 Windows 脚本发送通知。
+四个贯穿性概念：**平台核心**（auth/RBAC/审计/通知/任务，横切）、**Adapter**（工具集成）、**Action**（能力单元，RBAC/审计粒度）、**Action Bus**（声明式联动）。
 
-## 最大化脚本接入（Script Adapter 设计原则）
-
-Script Adapter 是"本系统接入各种脚本"的核心，须最大化灵活：
-- **多运行时**：PowerShell、cmd/batch、bash/sh、Python、Node 等，可配置执行器。
-- **类型化参数 + 结构化输出**：输入按 schema 校验；输出除 stdout / stderr / exit code 外，支持解析 JSON 结构化结果。
-- **执行位置**：平台宿主机本地（如 Windows 脚本）或经 SSH 远程。
-- **安全与可控**：超时、资源限制、沙箱、统一记入审计日志。
-
-## 最大化被接入（外部系统接入本平台的支撑）
-
-让别的系统能快速接入，平台须提供：
-- **文档化 API**：NestJS 控制器自动生成 OpenAPI，`docs/integrations/` 维护对接说明。
-- **Webhook 接收**：外部系统可推送事件进来。
-- **Action 调用 API**：外部系统经鉴权（API Token）触发已注册的 Action。
-- **集成文档 / SDK**：每个对外能力都有对接文档，必要时提供生成的客户端。
-
-## 文档驱动开发（硬性约定）
-
-**后续所有开发一律"文档先行"。** 在写任何功能代码之前，先写设计文档 / 规格（spec）：
-
-1. 功能 / 工具的设计 spec 放 `docs/specs/`，至少写清：目的、暴露的 Action、输入 / 输出 schema、对接契约、错误处理、安全考量。
-2. 对外集成的对接说明放 `docs/integrations/`。
-3. spec 评审通过后再实现；实现须与 spec 一致，spec 与代码同步演进。
-
-本环境提供大量 spec 驱动技能（`api-spec-create` / `api-flow-spec-create` / `component-impl-spec-create` 等），实现前优先用它们产出 spec。运行技能：`/<skill-name>`。
-
-## 预期目录结构
-
-> 项目尚未脚手架。落地时据此组织：
+## 代码结构
 
 ```
-tools/
-├── apps/
-│   ├── server/        # NestJS 后端（平台核心 + 适配器 + action bus）
-│   └── web/           # Vue 3 前端门户
-├── packages/
-│   └── shared/        # 共享类型与契约（Adapter/Action 接口、DTO、schema）
-├── docs/
-│   ├── specs/         # 文档先行：功能/工具设计 spec
-│   └── integrations/  # 外部系统接入本平台的对接文档
-└── CLAUDE.md
+apps/server/src/
+├── platform/            # 横切层（在 runtime 之上）
+│   ├── prisma/          # PrismaService(@Global)
+│   ├── crypto/          # CryptoService(AES-256-GCM, @Global)
+│   ├── auth/            # AuthService/JWT、AuthGuard(APP_GUARD)、@Public、AuthUser
+│   ├── rbac/            # RbacService（action 级+通配，getAuthUser）
+│   ├── audit/           # AuditService
+│   ├── notify/          # NotificationService（webhook）
+│   └── admin/           # AdminService/Controller + AdminGuard（/admin/* 仅管理员）
+├── runtime/             # 执行层
+│   ├── adapter-registry.ts  # Action 中央索引
+│   ├── action.service.ts    # ★ 授权+审计咽喉（改 Action 行为先看这里）
+│   ├── action-bus.service.ts# 联动（事件→目标 Action）
+│   ├── adapters/echo.adapter.ts        # 示例适配器（新代码式适配器的模板）
+│   ├── script/、ssh/、http/            # 三类原语适配器
+│   ├── task/、schedule/、linkage/       # 异步任务、cron 调度、联动规则
+│   └── permission-sync.service.ts      # 启动把已注册 Action 同步为 Permission
+├── app.controller.ts    # /health(公开) + /actions/:id/invoke
+└── load-env.ts          # 最先加载 .env；并把 SQLite 路径锚定到 prisma/ 目录
+apps/web/src/            # Vue 门户：api.ts(统一 fetch+token)、auth、router、views/
+packages/shared/src/     # Adapter/Action/ActionBus 契约 + zod（前后端共用）
+apps/server/prisma/      # schema.prisma + migrations + seed.ts
 ```
+
+## 文档先行（硬性约定）+ 接入新工具
+
+- 功能/工具**先写 spec**（`docs/specs/NNNN-*.md`）再实现；对外对接放 `docs/integrations/`。
+- 接入新工具看 [`docs/quick-start-tool.md`](./docs/quick-start-tool.md)：**声明式清单（推荐，零代码）**绑定到 script/ssh/http 原语；需要自定义逻辑才写代码式 Adapter（以 `echo.adapter.ts` 为模板）。
+- 进度与路线图见 [`docs/README.md`](./docs/README.md)。
 
 ## 构建 / 运行命令
 
@@ -100,12 +91,14 @@ pnpm --filter @tools/server exec prisma migrate dev
 pnpm --filter @tools/server db:seed   # 初始化 admin/admin（仅 dev）
 ```
 
-> 平台核心默认 dev 账号 `admin/admin`，生产请改密。配置由 `apps/server/.env`（复制自 `.env.example`）提供；SQLite 路径在运行时锚定到 `prisma/` 目录，不受启动 cwd 影响。
+> dev 默认账号 `admin/admin`，生产请改密。配置由 `apps/server/.env`（复制自 `.env.example`）；SQLite 路径运行时锚定到 `prisma/`，不受启动 cwd 影响。
+> pnpm 构建脚本策略：`@prisma/client`/`@prisma/engines`/`prisma`/`esbuild` 已在 `pnpm-workspace.yaml` allowBuilds 放行；`argon2`/`cpu-features`/`ssh2` 设 false（纯 JS 模式即可）。
 
-## 给后续开发的关键约束
+## 关键约束
 
-- **新工具一律走 Adapter**：实现 Adapter 接口、注册 Action，不要在核心里直接写工具逻辑。
-- **跨工具联动走 Action Bus**：声明式配置，禁止 Adapter 之间直接硬编码调用。
-- **横切能力（鉴权 / 日志 / 通知）用核心提供的能力**，工具内不自建。
-- **任何对外能力都要有 spec 和集成文档**（文档先行）。
-- TypeScript strict 模式；契约（schema / DTO）放 `packages/shared`，前后端共用。
+- **新工具优先声明式**（0006 清单 → 原语）；超出三原语才写代码式 Adapter，注册进 `RuntimeModule` 的 `ADAPTERS` 工厂。
+- **改 Action 执行/授权/审计，改 `action.service.ts`**（唯一咽喉）；联动走 `action-bus.service.ts`，禁止硬编码 Adapter 互调。
+- 横切能力（鉴权/审计/通知/加密）用 `platform/` 提供，工具内不自建。
+- 机密（凭据/webhook secret）一律经 `CryptoService` 加密落库，API 返回不带 secret。
+- 任何对外能力都要有 spec + 对接文档（文档先行）。
+- TypeScript strict；契约放 `packages/shared`；server tsconfig 已关 declaration。
