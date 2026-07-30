@@ -265,6 +265,66 @@ export class AdminService {
     return { sent: true };
   }
 
+  // ---------------- ssh profiles ----------------
+  async listSshProfiles() {
+    const items = await this.prisma.sshProfile.findMany({ orderBy: { createdAt: 'desc' } });
+    // 不返回 secret
+    return items.map((p) => ({
+      id: p.id,
+      name: p.name,
+      host: p.host,
+      port: p.port,
+      user: p.user,
+      authType: p.authType,
+      createdAt: p.createdAt,
+    }));
+  }
+
+  async createSshProfile(dto: {
+    name: string;
+    host: string;
+    port?: number;
+    user: string;
+    authType?: string;
+    secret: string;
+  }) {
+    if (!dto.name || !dto.host || !dto.user || !dto.secret) {
+      throw new BadRequestException('name/host/user/secret 必填');
+    }
+    const p = await this.prisma.sshProfile.create({
+      data: {
+        name: dto.name,
+        host: dto.host,
+        port: dto.port ?? 22,
+        user: dto.user,
+        authType: dto.authType ?? 'password',
+        secret: dto.secret,
+      },
+    });
+    return { id: p.id, name: p.name, host: p.host, port: p.port, user: p.user, authType: p.authType };
+  }
+
+  async updateSshProfile(
+    id: string,
+    dto: Partial<{ name: string; host: string; port: number; user: string; authType: string; secret: string }>,
+  ) {
+    try {
+      const p = await this.prisma.sshProfile.update({ where: { id }, data: dto });
+      return { id: p.id, name: p.name };
+    } catch {
+      throw new NotFoundException('ssh profile 不存在');
+    }
+  }
+
+  async deleteSshProfile(id: string): Promise<{ id: string }> {
+    try {
+      await this.prisma.sshProfile.delete({ where: { id } });
+      return { id };
+    } catch {
+      throw new NotFoundException('ssh profile 不存在');
+    }
+  }
+
   private safeUser(u: {
     id: string;
     username: string;

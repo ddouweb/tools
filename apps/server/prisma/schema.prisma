@@ -146,3 +146,14 @@ model Schedule {
 
   @@index([enabled])
 }
+
+model SshProfile {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  host      String
+  port      Int      @default(22)
+  user      String
+  authType  String   @default("password") // password | privateKey
+  secret    String // 密码或 PEM 私钥；dev 明文，prod 应加密
+  createdAt DateTime @default(now())
+}

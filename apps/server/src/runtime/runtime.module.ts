@@ -6,6 +6,7 @@ import { ActionBusService } from './action-bus.service';
 import { AdapterBootstrap } from './adapter-bootstrap';
 import { EchoAdapter } from './adapters/echo.adapter';
 import { ScriptAdapter } from './script/script.adapter';
+import { SshAdapter } from './ssh/ssh.adapter';
 import { SCRIPT_CONFIG, scriptConfigFromEnv } from './script/script.config';
 import { PermissionSyncService } from './permission-sync.service';
 import { TaskService } from './task.service';
@@ -25,11 +26,12 @@ import { ScheduleController } from './schedule.controller';
     ActionBusService,
     EchoAdapter,
     ScriptAdapter,
+    SshAdapter,
     { provide: SCRIPT_CONFIG, useFactory: () => scriptConfigFromEnv() },
     {
       provide: 'ADAPTERS',
-      useFactory: (echo: EchoAdapter, script: ScriptAdapter) => [echo, script],
-      inject: [EchoAdapter, ScriptAdapter],
+      useFactory: (echo: EchoAdapter, script: ScriptAdapter, ssh: SshAdapter) => [echo, script, ssh],
+      inject: [EchoAdapter, ScriptAdapter, SshAdapter],
     },
     AdapterBootstrap,
     PermissionSyncService,

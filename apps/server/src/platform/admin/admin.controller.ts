@@ -103,6 +103,29 @@ export class AdminController {
     return this.admin.testWebhook();
   }
 
+  // ---- ssh profiles ----
+  @Get('ssh/profiles')
+  listSshProfiles() {
+    return this.admin.listSshProfiles();
+  }
+  @Post('ssh/profiles')
+  createSshProfile(
+    @Body() body: { name: string; host: string; port?: number; user: string; authType?: string; secret: string },
+  ) {
+    return this.admin.createSshProfile(body);
+  }
+  @Patch('ssh/profiles/:id')
+  updateSshProfile(
+    @Param('id') id: string,
+    @Body() body: Partial<{ name: string; host: string; port: number; user: string; authType: string; secret: string }>,
+  ) {
+    return this.admin.updateSshProfile(id, body);
+  }
+  @Delete('ssh/profiles/:id')
+  deleteSshProfile(@Param('id') id: string) {
+    return this.admin.deleteSshProfile(id);
+  }
+
   // ---- audit ----
   @Get('audit')
   queryAudit(@Query() query: Record<string, string>) {
