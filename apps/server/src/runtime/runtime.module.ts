@@ -14,13 +14,15 @@ import { TaskService } from './task.service';
 import { TaskController } from './task.controller';
 import { ScheduleService } from './schedule.service';
 import { ScheduleController } from './schedule.controller';
+import { LinkageService } from './linkage.service';
+import { LinkageController } from './linkage.controller';
 
 /**
  * RuntimeModule —— 适配器运行时内核 + 任务/调度。
  */
 @Module({
   imports: [PlatformModule],
-  controllers: [TaskController, ScheduleController],
+  controllers: [TaskController, ScheduleController, LinkageController],
   providers: [
     AdapterRegistry,
     ActionService,
@@ -39,6 +41,7 @@ import { ScheduleController } from './schedule.controller';
     PermissionSyncService,
     TaskService,
     ScheduleService,
+    LinkageService,
   ],
   exports: [AdapterRegistry, ActionService, ActionBusService],
 })

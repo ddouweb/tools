@@ -1,27 +1,29 @@
 /**
- * Action Bus — 跨工具"关联操作"的声明式机制。
- * 适配器 emit 事件；LinkageRule 把事件路由到其它适配器的 Action。
- * 禁止适配器之间直接硬编码调用，联动一律走 Bus。
+ * Action Bus —— 跨工具"关联操作"的声明式机制。
+ * 适配器/平台 emit 事件；LinkageRule 把事件路由到其它 Action。
  */
 
-/** 适配器发出的事件。 */
+export type LinkageMode = 'passthrough' | 'static';
+
+/** 适配器/平台发出的事件。 */
 export interface AdapterEvent {
-  /** 全局唯一事件 id，例如 'jenkins.build-failed' */
+  /** 全局唯一事件 id，例如 'action.script.run.failed' / 'jenkins.build-failed' */
   id: string;
   name: string;
-  /** 负载结构由发射方定义，消费方通过 rule.map 适配 */
   payload?: unknown;
 }
 
-/** 一条联动规则：某事件 -> 触发某 Action。 */
+/** 联动规则（可持久化）：某事件 -> 触发某 Action。 */
 export interface LinkageRule {
   id: string;
   /** 触发源事件 id */
   sourceEventId: string;
   /** 目标 Action id */
   targetActionId: string;
-  /** 把事件 payload 映射为目标 Action 的输入 */
-  map: (payload: unknown) => unknown;
+  /** passthrough: 用事件 payload 作目标输入；static: 用 targetInput。默认 passthrough */
+  mode?: LinkageMode;
+  /** mode=static 时的固定目标输入（JSON） */
+  targetInput?: unknown;
   enabled?: boolean;
 }
 
@@ -29,7 +31,7 @@ export interface LinkageRule {
 export interface ActionBus {
   /** 本地监听某事件（适配器内部使用） */
   on(eventId: string, listener: (payload: unknown) => void): void;
-  /** 发射事件，触发所有匹配的联动规则（规则内会异步调用目标 Action） */
+  /** 发射事件，触发所有匹配的联动规则（规则内异步调用目标 Action） */
   emit(event: AdapterEvent): Promise<void>;
   /** 注册一条联动规则 */
   addRule(rule: LinkageRule): void;

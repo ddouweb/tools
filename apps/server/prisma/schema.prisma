@@ -166,3 +166,16 @@ model HttpCredential {
   headerName String?  // authType=header 时的头名
   createdAt  DateTime @default(now())
 }
+
+model LinkageRule {
+  id             String   @id @default(cuid())
+  name           String
+  sourceEventId  String
+  targetActionId String
+  mode           String   @default("passthrough") // passthrough | static
+  targetInput    String? // JSON, mode=static
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([sourceEventId])
+}

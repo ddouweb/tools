@@ -6,6 +6,7 @@ import type { AuthUser } from '../platform/auth/auth.types';
 import { RbacService } from '../platform/rbac/rbac.service';
 import { AuditService } from '../platform/audit/audit.service';
 import { NotificationService } from '../platform/notify/notification.service';
+import { ActionBusService } from './action-bus.service';
 import { AdapterRegistry } from './adapter-registry';
 
 /**
@@ -21,9 +22,15 @@ export class ActionService {
     private readonly rbac: RbacService,
     private readonly audit: AuditService,
     private readonly notify: NotificationService,
+    private readonly actionBus: ActionBusService,
   ) {}
 
-  async run(actionId: string, rawInput: unknown, principal: AuthUser): Promise<ActionResult> {
+  async run(
+    actionId: string,
+    rawInput: unknown,
+    principal: AuthUser,
+    opts: { suppressEmit?: boolean } = {},
+  ): Promise<ActionResult> {
     const registration = this.registry.get(actionId);
     if (!registration) {
       return fail('ACTION_NOT_FOUND', `未注册的 Action: ${actionId}`);
@@ -86,6 +93,15 @@ export class ActionService {
         inputDigest: this.audit.digest(parsed.data),
         correlationId: ctx.correlationId,
       });
+      if (!opts.suppressEmit) {
+        void this.actionBus
+          .emit({
+            id: result.ok ? `action.${actionId}.succeeded` : `action.${actionId}.failed`,
+            name: actionId,
+            payload: { actionId, ok: result.ok, errorCode: result.error?.code, correlationId: ctx.correlationId },
+          })
+          .catch(() => undefined);
+      }
       return {
         ...result,
         meta: {
@@ -119,6 +135,15 @@ export class ActionService {
           createdAt: finishedAt.toISOString(),
         })
         .catch(() => undefined);
+      if (!opts.suppressEmit) {
+        void this.actionBus
+          .emit({
+            id: `action.${actionId}.failed`,
+            name: actionId,
+            payload: { actionId, ok: false, errorCode: 'HANDLER_ERROR', correlationId: ctx.correlationId },
+          })
+          .catch(() => undefined);
+      }
       return fail('HANDLER_ERROR', message, { auditLogId });
     }
   }
