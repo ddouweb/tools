@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { ActionContext, ActionResult, Adapter } from '@tools/shared';
 import { fail, ok, reg } from '@tools/shared';
 import { PrismaService } from '../../platform/prisma/prisma.service';
+import { CryptoService } from '../../platform/crypto/crypto.service';
 
 const runInput = z.object({
   profile: z.string().min(1), // SshProfile.name
@@ -35,7 +36,10 @@ export class SshAdapter implements Adapter {
     version: '0.1.0',
   };
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly crypto: CryptoService,
+  ) {}
 
   register() {
     return [
@@ -54,11 +58,15 @@ export class SshAdapter implements Adapter {
   }
 
   private async run(input: RunInput, _ctx: ActionContext): Promise<ActionResult<RunOutput>> {
-    const profile = await this.prisma.sshProfile.findUnique({ where: { name: input.profile } });
-    if (!profile) {
+    const p = await this.prisma.sshProfile.findUnique({ where: { name: input.profile } });
+    if (!p) {
       return fail('PROFILE_NOT_FOUND', `SSH profile 不存在: ${input.profile}`);
     }
-    return execOverSsh(profile, input.command, input.timeoutMs);
+    return execOverSsh(
+      { host: p.host, port: p.port, user: p.user, authType: p.authType, secret: this.crypto.decrypt(p.secret) },
+      input.command,
+      input.timeoutMs,
+    );
   }
 }
 

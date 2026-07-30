@@ -126,6 +126,27 @@ export class AdminController {
     return this.admin.deleteSshProfile(id);
   }
 
+  // ---- http credentials ----
+  @Get('http/credentials')
+  listHttpCredentials() {
+    return this.admin.listHttpCredentials();
+  }
+  @Post('http/credentials')
+  createHttpCredential(@Body() body: { name: string; authType?: string; secret: string; headerName?: string }) {
+    return this.admin.createHttpCredential(body);
+  }
+  @Patch('http/credentials/:id')
+  updateHttpCredential(
+    @Param('id') id: string,
+    @Body() body: Partial<{ name: string; authType: string; secret: string; headerName: string }>,
+  ) {
+    return this.admin.updateHttpCredential(id, body);
+  }
+  @Delete('http/credentials/:id')
+  deleteHttpCredential(@Param('id') id: string) {
+    return this.admin.deleteHttpCredential(id);
+  }
+
   // ---- audit ----
   @Get('audit')
   queryAudit(@Query() query: Record<string, string>) {

@@ -157,3 +157,12 @@ model SshProfile {
   secret    String // 密码或 PEM 私钥；dev 明文，prod 应加密
   createdAt DateTime @default(now())
 }
+
+model HttpCredential {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  authType   String   @default("bearer") // none | basic | bearer | header
+  secret     String   // basic:"user:pass"; bearer:token; header:HeaderValue
+  headerName String?  // authType=header 时的头名
+  createdAt  DateTime @default(now())
+}

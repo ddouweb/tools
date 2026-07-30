@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { hash } from '@node-rs/argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notify/notification.service';
+import { CryptoService } from '../crypto/crypto.service';
 
 interface SafeUser {
   id: string;
@@ -18,6 +19,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationService,
+    private readonly crypto: CryptoService,
   ) {}
 
   // ---------------- users ----------------
@@ -227,7 +229,7 @@ export class AdminService {
       data: {
         name: dto.name,
         url: dto.url,
-        secret: dto.secret,
+        secret: dto.secret ? this.crypto.encrypt(dto.secret) : null,
         events: dto.events ?? '',
         active: dto.active ?? true,
       },
@@ -238,8 +240,10 @@ export class AdminService {
     id: string,
     dto: Partial<{ name: string; url: string; secret: string; events: string; active: boolean }>,
   ) {
+    const data: Record<string, unknown> = { ...dto };
+    if (dto.secret !== undefined) data.secret = this.crypto.encrypt(dto.secret);
     try {
-      return this.prisma.webhookConfig.update({ where: { id }, data: dto });
+      return this.prisma.webhookConfig.update({ where: { id }, data: data as never });
     } catch {
       throw new NotFoundException('webhook 不存在');
     }
@@ -298,7 +302,7 @@ export class AdminService {
         port: dto.port ?? 22,
         user: dto.user,
         authType: dto.authType ?? 'password',
-        secret: dto.secret,
+        secret: this.crypto.encrypt(dto.secret),
       },
     });
     return { id: p.id, name: p.name, host: p.host, port: p.port, user: p.user, authType: p.authType };
@@ -308,8 +312,10 @@ export class AdminService {
     id: string,
     dto: Partial<{ name: string; host: string; port: number; user: string; authType: string; secret: string }>,
   ) {
+    const data: Record<string, unknown> = { ...dto };
+    if (dto.secret !== undefined) data.secret = this.crypto.encrypt(dto.secret);
     try {
-      const p = await this.prisma.sshProfile.update({ where: { id }, data: dto });
+      const p = await this.prisma.sshProfile.update({ where: { id }, data: data as never });
       return { id: p.id, name: p.name };
     } catch {
       throw new NotFoundException('ssh profile 不存在');
@@ -322,6 +328,59 @@ export class AdminService {
       return { id };
     } catch {
       throw new NotFoundException('ssh profile 不存在');
+    }
+  }
+
+  // ---------------- http credentials ----------------
+  async listHttpCredentials() {
+    const items = await this.prisma.httpCredential.findMany({ orderBy: { createdAt: 'desc' } });
+    return items.map((c) => ({
+      id: c.id,
+      name: c.name,
+      authType: c.authType,
+      headerName: c.headerName,
+      createdAt: c.createdAt,
+    }));
+  }
+
+  async createHttpCredential(dto: {
+    name: string;
+    authType?: string;
+    secret: string;
+    headerName?: string;
+  }) {
+    if (!dto.name || !dto.secret) throw new BadRequestException('name/secret 必填');
+    const c = await this.prisma.httpCredential.create({
+      data: {
+        name: dto.name,
+        authType: dto.authType ?? 'bearer',
+        secret: this.crypto.encrypt(dto.secret),
+        headerName: dto.headerName,
+      },
+    });
+    return { id: c.id, name: c.name, authType: c.authType };
+  }
+
+  async updateHttpCredential(
+    id: string,
+    dto: Partial<{ name: string; authType: string; secret: string; headerName: string }>,
+  ) {
+    const data: Record<string, unknown> = { ...dto };
+    if (dto.secret !== undefined) data.secret = this.crypto.encrypt(dto.secret);
+    try {
+      const c = await this.prisma.httpCredential.update({ where: { id }, data: data as never });
+      return { id: c.id, name: c.name };
+    } catch {
+      throw new NotFoundException('http 凭据不存在');
+    }
+  }
+
+  async deleteHttpCredential(id: string): Promise<{ id: string }> {
+    try {
+      await this.prisma.httpCredential.delete({ where: { id } });
+      return { id };
+    } catch {
+      throw new NotFoundException('http 凭据不存在');
     }
   }
 

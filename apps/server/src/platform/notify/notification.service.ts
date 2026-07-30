@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CryptoService } from '../crypto/crypto.service';
 import type { Notification } from './notification.types';
 
 /**
@@ -12,7 +13,10 @@ import type { Notification } from './notification.types';
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly crypto: CryptoService,
+  ) {}
 
   async notify(n: Notification): Promise<void> {
     const hooks = await this.prisma.webhookConfig.findMany({ where: { active: true } });
@@ -28,7 +32,7 @@ export class NotificationService {
     const body = JSON.stringify(n);
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (hook.secret) {
-      headers['X-Signature'] = createHmac('sha256', hook.secret).update(body).digest('hex');
+      headers['X-Signature'] = createHmac('sha256', this.crypto.decrypt(hook.secret)).update(body).digest('hex');
     }
     try {
       const res = await fetch(hook.url, { method: 'POST', headers, body });
