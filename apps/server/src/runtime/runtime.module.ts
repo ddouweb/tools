@@ -7,6 +7,7 @@ import { EchoAdapter } from './adapters/echo.adapter';
 import { ScriptAdapter } from './script/script.adapter';
 import { SCRIPT_CONFIG, scriptConfigFromEnv } from './script/script.config';
 import { PlatformModule } from '../platform/platform.module';
+import { PermissionSyncService } from './permission-sync.service';
 
 /**
  * RuntimeModule — 适配器运行时内核。
@@ -27,6 +28,7 @@ import { PlatformModule } from '../platform/platform.module';
       inject: [EchoAdapter, ScriptAdapter],
     },
     AdapterBootstrap,
+    PermissionSyncService,
   ],
   exports: [AdapterRegistry, ActionService, ActionBusService],
 })

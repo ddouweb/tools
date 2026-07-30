@@ -87,8 +87,8 @@
 
 ## 11. 分阶段实现
 
-- **阶段一（安全 MVP，优先）**：User 模型 + 登录/JWT + `AuthGuard` + `ActionService` 的 RBAC/审计切点 + API Token。**完成后即解锁所有真实适配器的安全调用**（如 0001 的 `script.run` 才能被授权执行）。
-- **阶段二**：RBAC 管理 API（用户/角色/权限 CRUD 与分配）+ 审计查询 API。
+- **阶段一（已实现）**：User 模型 + 登录/JWT + `AuthGuard` + `ActionService` 的 RBAC/审计切点 + API Token。解锁了所有真实适配器的安全调用。
+- **阶段二（已实现）**：RBAC 管理 API（用户/角色/权限 CRUD 与分配）+ 审计查询 API；启动时自动把已注册 Action 同步为权限。
 - **阶段三**：通知模块（webhook 通道，定义 `NotificationChannel` 接口）。
 - **阶段四**：任务/调度（异步执行 Action、定时触发）。
 
