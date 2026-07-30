@@ -114,3 +114,35 @@ model WebhookConfig {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+model Task {
+  id          String    @id @default(cuid())
+  actionId    String
+  input       String // JSON
+  principalId String
+  status      String    @default("pending") // pending|running|succeeded|failed
+  result      String? // JSON (ActionResult)
+  errorCode   String?
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  @@index([actionId])
+  @@index([principalId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Schedule {
+  id          String    @id @default(cuid())
+  name        String
+  actionId    String
+  input       String // JSON
+  cron        String // 5 或 6 段 cron
+  principalId String
+  enabled     Boolean   @default(true)
+  lastRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([enabled])
+}

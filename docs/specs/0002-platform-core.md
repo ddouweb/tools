@@ -90,6 +90,6 @@
 - **阶段一（已实现）**：User 模型 + 登录/JWT + `AuthGuard` + `ActionService` 的 RBAC/审计切点 + API Token。解锁了所有真实适配器的安全调用。
 - **阶段二（已实现）**：RBAC 管理 API（用户/角色/权限 CRUD 与分配）+ 审计查询 API；启动时自动把已注册 Action 同步为权限。
 - **阶段三（已实现）**：通知模块（webhook 通道，`NotificationChannel` 接口；HMAC-SHA256 签名、事件过滤；ActionService HANDLER_ERROR 自动触发 `action.error`）。
-- **阶段四**：任务/调度（异步执行 Action、定时触发）。
+- **阶段四（已实现）**：任务/调度——`Task` 异步执行 Action（`POST /actions/:id/submit` + `GET /tasks`）；`Schedule` cron 定时触发（`/admin/schedules`，启动加载、CRUD 即时启停）。
 
 > 本 spec 为实现前的设计文档（文档先行）。阶段一评审通过后再进入实现。

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import type { AuthUser } from '../auth/auth.types';
 
 /**
  * RbacService —— Action 级授权。
@@ -23,6 +24,16 @@ export class RbacService {
       }
     }
     return false;
+  }
+
+  /** 依据 userId 构造 AuthUser（含 isAdmin），供任务/调度等异步执行时还原主体。 */
+  async getAuthUser(userId: string): Promise<AuthUser> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return { id: userId, username: 'unknown', isAdmin: false };
+    const admin = await this.prisma.userRole.findFirst({
+      where: { userId, role: { isAdmin: true } },
+    });
+    return { id: user.id, username: user.username, isAdmin: !!admin };
   }
 }
 
