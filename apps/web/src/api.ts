@@ -57,5 +57,23 @@ export const api = {
   deleteWebhook: (id: string) => req(`/admin/notifications/webhooks/${id}`, { method: 'DELETE' }),
   testWebhook: () => req('/admin/notifications/test', { method: 'POST' }),
   audit: (query: string) => req(`/admin/audit?${query}`),
+
+  // 任务
+  tasks: () => req('/tasks'),
+  // ssh profiles
+  sshProfiles: () => req('/admin/ssh/profiles'),
+  createSshProfile: (b: unknown) => req('/admin/ssh/profiles', { method: 'POST', body: JSON.stringify(b) }),
+  deleteSshProfile: (id: string) => req(`/admin/ssh/profiles/${id}`, { method: 'DELETE' }),
+  // http credentials
+  httpCredentials: () => req('/admin/http/credentials'),
+  createHttpCredential: (b: unknown) => req('/admin/http/credentials', { method: 'POST', body: JSON.stringify(b) }),
+  deleteHttpCredential: (id: string) => req(`/admin/http/credentials/${id}`, { method: 'DELETE' }),
+  // linkages
+  linkages: () => req('/admin/linkages'),
+  createLinkage: (b: unknown) => req('/admin/linkages', { method: 'POST', body: JSON.stringify(b) }),
+  deleteLinkage: (id: string) => req(`/admin/linkages/${id}`, { method: 'DELETE' }),
+  // schedules
   schedules: () => req('/admin/schedules'),
+  createSchedule: (b: unknown) => req('/admin/schedules', { method: 'POST', body: JSON.stringify(b) }),
+  deleteSchedule: (id: string) => req(`/admin/schedules/${id}`, { method: 'DELETE' }),
 };
