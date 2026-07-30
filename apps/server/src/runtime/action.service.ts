@@ -5,6 +5,7 @@ import { fail } from '@tools/shared';
 import type { AuthUser } from '../platform/auth/auth.types';
 import { RbacService } from '../platform/rbac/rbac.service';
 import { AuditService } from '../platform/audit/audit.service';
+import { NotificationService } from '../platform/notify/notification.service';
 import { AdapterRegistry } from './adapter-registry';
 
 /**
@@ -19,6 +20,7 @@ export class ActionService {
     private readonly registry: AdapterRegistry,
     private readonly rbac: RbacService,
     private readonly audit: AuditService,
+    private readonly notify: NotificationService,
   ) {}
 
   async run(actionId: string, rawInput: unknown, principal: AuthUser): Promise<ActionResult> {
@@ -107,6 +109,16 @@ export class ActionService {
         durationMs: finishedAt.getTime() - startedAt.getTime(),
         correlationId: ctx.correlationId,
       });
+      void this.notify
+        .notify({
+          event: 'action.error',
+          level: 'error',
+          title: `Action 执行失败: ${actionId}`,
+          message,
+          meta: { actionId, principal: principal.id, correlationId: ctx.correlationId },
+          createdAt: finishedAt.toISOString(),
+        })
+        .catch(() => undefined);
       return fail('HANDLER_ERROR', message, { auditLogId });
     }
   }

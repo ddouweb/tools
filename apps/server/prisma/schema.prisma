@@ -104,3 +104,13 @@ model AuditLog {
   @@index([principal])
   @@index([createdAt])
 }
+
+model WebhookConfig {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  secret    String? // 非空时用 HMAC-SHA256 签名放 X-Signature
+  events    String   @default("") // 逗号分隔事件过滤；空=订阅全部
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

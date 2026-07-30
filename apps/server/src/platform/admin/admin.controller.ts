@@ -76,6 +76,33 @@ export class AdminController {
     return this.admin.createPermission(body.key);
   }
 
+  // ---- notifications ----
+  @Get('notifications/webhooks')
+  listWebhooks() {
+    return this.admin.listWebhooks();
+  }
+  @Post('notifications/webhooks')
+  createWebhook(
+    @Body() body: { name: string; url: string; secret?: string; events?: string; active?: boolean },
+  ) {
+    return this.admin.createWebhook(body);
+  }
+  @Patch('notifications/webhooks/:id')
+  updateWebhook(
+    @Param('id') id: string,
+    @Body() body: Partial<{ name: string; url: string; secret: string; events: string; active: boolean }>,
+  ) {
+    return this.admin.updateWebhook(id, body);
+  }
+  @Delete('notifications/webhooks/:id')
+  deleteWebhook(@Param('id') id: string) {
+    return this.admin.deleteWebhook(id);
+  }
+  @Post('notifications/test')
+  testWebhook() {
+    return this.admin.testWebhook();
+  }
+
   // ---- audit ----
   @Get('audit')
   queryAudit(@Query() query: Record<string, string>) {

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import type { Prisma } from '@prisma/client';
 import { hash } from '@node-rs/argon2';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notify/notification.service';
 
 interface SafeUser {
   id: string;
@@ -14,7 +15,10 @@ interface SafeUser {
 /** RBAC 管理 + 审计查询（阶段二）。 */
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationService,
+  ) {}
 
   // ---------------- users ----------------
   async listUsers(): Promise<SafeUser[]> {
@@ -204,6 +208,61 @@ export class AdminService {
       this.prisma.auditLog.count({ where }),
     ]);
     return { items, total, page, pageSize };
+  }
+
+  // ---------------- notifications ----------------
+  listWebhooks() {
+    return this.prisma.webhookConfig.findMany({ orderBy: { createdAt: 'desc' } });
+  }
+
+  createWebhook(dto: {
+    name: string;
+    url: string;
+    secret?: string;
+    events?: string;
+    active?: boolean;
+  }) {
+    if (!dto.name || !dto.url) throw new BadRequestException('name/url 必填');
+    return this.prisma.webhookConfig.create({
+      data: {
+        name: dto.name,
+        url: dto.url,
+        secret: dto.secret,
+        events: dto.events ?? '',
+        active: dto.active ?? true,
+      },
+    });
+  }
+
+  async updateWebhook(
+    id: string,
+    dto: Partial<{ name: string; url: string; secret: string; events: string; active: boolean }>,
+  ) {
+    try {
+      return this.prisma.webhookConfig.update({ where: { id }, data: dto });
+    } catch {
+      throw new NotFoundException('webhook 不存在');
+    }
+  }
+
+  async deleteWebhook(id: string): Promise<{ id: string }> {
+    try {
+      await this.prisma.webhookConfig.delete({ where: { id } });
+      return { id };
+    } catch {
+      throw new NotFoundException('webhook 不存在');
+    }
+  }
+
+  async testWebhook() {
+    await this.notifications.notify({
+      event: 'notification.test',
+      level: 'info',
+      title: '测试通知',
+      message: '来自 tools 平台的测试通知',
+      createdAt: new Date().toISOString(),
+    });
+    return { sent: true };
   }
 
   private safeUser(u: {
