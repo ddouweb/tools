@@ -6,6 +6,7 @@
 
 - `specs/` — 功能与适配器的设计 spec（实现前必写）
 - `integrations/` — 外部系统接入本平台的对接文档（OpenAPI、Webhook、Action 调用 API、SDK）
+- 指南：[快速接入新工具](./quick-start-tool.md)（声明式清单 / 代码式 Adapter）
 
 ## Spec 工作流
 
@@ -23,3 +24,4 @@
 | [0003](./specs/0003-ssh-adapter.md) | SSH Adapter（远程 Linux / Docker 管理） | 已实现 v0.1 |
 | [0004](./specs/0004-http-adapter.md) | HTTP Adapter（Jenkins 等第三方 API） | 已实现 v0.1 |
 | [0005](./specs/0005-action-bus.md) | Action Bus 联动规则与配置 | 已实现 v0.1 |
+| [0006](./specs/0006-tool-as-resource.md) | Tool as Resource（声明式工具 / 插件模型） | 草案 |
