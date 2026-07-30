@@ -1,3 +1,4 @@
+import './load-env'; // 必须最先：在 AppModule import 期(JwtModule.register)之前加载 .env
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';

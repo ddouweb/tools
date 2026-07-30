@@ -6,12 +6,14 @@ import { AdapterBootstrap } from './adapter-bootstrap';
 import { EchoAdapter } from './adapters/echo.adapter';
 import { ScriptAdapter } from './script/script.adapter';
 import { SCRIPT_CONFIG, scriptConfigFromEnv } from './script/script.config';
+import { PlatformModule } from '../platform/platform.module';
 
 /**
  * RuntimeModule — 适配器运行时内核。
  * 暴出 AdapterRegistry / ActionService / ActionBusService 供控制器与未来平台核心使用。
  */
 @Module({
+  imports: [PlatformModule],
   providers: [
     AdapterRegistry,
     ActionService,

@@ -1,6 +1,6 @@
 # 0002 — Platform Core（平台核心：登录 / RBAC / 审计 / 通知 / 任务）
 
-- 状态：草案
+- 状态：已定（评审通过 2026-07-30；阶段一实现中）
 - 关联：CLAUDE.md「平台核心」；[0001 Script Adapter](./0001-script-adapter.md)；`docs/integrations/`
 
 ## 1. 目的
@@ -78,13 +78,12 @@
 
 外部系统：以 `Authorization: Bearer <api-token>` 调用 `POST /actions/:actionId/invoke`，限 `visibility: public` 的 Action，且 token 关联用户须有权限。详细对接文档（鉴权流程、token 申请、错误码）随后落 `docs/integrations/`。
 
-## 10. 开放问题（倾向）
+## 10. 决议（评审已定，2026-07-30）
 
-- **数据库**：dev 用 SQLite、prod 用 Postgres——用 Prisma 兼容两者，dev 默认 SQLite 零配置。
-- **会话**：JWT（无状态 access + 有状态 refresh）vs 服务端会话——倾向 JWT。
-- **权限粒度**：action 级 + 通配是否足够，还是需要 tag/adapter 级分组——先 action 级。
-- **通知首期通道**：webhook 即可，邮件/IM 后续。
-- **异步任务**：阶段四再定是内置轻量调度还是接外部队列。
+- **数据层**：Prisma + SQLite(dev) / Postgres(prod)。
+- **会话**：JWT access（短，~15min）+ refresh（轮换、可吊销）。
+- **权限粒度**：Action 级 + 通配（`action:<id>` / `action:script.*` / `action:*`）。
+- **其它已定**：密码 argon2；审计仅存 `inputDigest`（脱敏摘要）；超级管理员用 `Role.isAdmin`；`/health` 公开、其余路由受 `AuthGuard`；通知首期 webhook；异步任务延后到阶段四。
 
 ## 11. 分阶段实现
 

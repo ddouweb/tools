@@ -1,12 +1,12 @@
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
+import { Public, type AuthUser } from './platform/auth/auth.types';
 import { AdapterRegistry } from './runtime/adapter-registry';
 import { ActionService } from './runtime/action.service';
 
 /**
- * 根控制器：健康检查 + 通用 Action 调用入口。
- * POST /actions/:actionId/invoke 同时是"被接入"能力的起点——外部系统经鉴权后可触发 visibility=public 的 Action。
- * （鉴权/RBAC 尚未实现，principal 暂取 anonymous，待 platform-core spec 落地后接入。）
+ * 根控制器：健康检查（公开）+ 通用 Action 调用入口（受 AuthGuard 保护）。
+ * 外部系统可凭 API Token 调 visibility=public 的 Action（鉴权与 RBAC 统一在 ActionService 切点）。
  */
 @Controller()
 export class AppController {
@@ -15,6 +15,7 @@ export class AppController {
     private readonly actions: ActionService,
   ) {}
 
+  @Public()
   @Get('health')
   health() {
     return {
@@ -31,7 +32,7 @@ export class AppController {
 
   @Post('actions/:actionId/invoke')
   async invoke(@Param('actionId') actionId: string, @Body() body: unknown, @Req() req: Request) {
-    const principal = (req as unknown as { user?: { id?: string } }).user?.id ?? 'anonymous';
-    return this.actions.run(actionId, body, principal);
+    const user = (req as unknown as { user: AuthUser }).user;
+    return this.actions.run(actionId, body, user);
   }
 }

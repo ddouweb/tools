@@ -87,16 +87,20 @@ tools/
 
 ## 构建 / 运行命令
 
-> 项目尚未脚手架。用 NestJS CLI + Vite 落地后，预期命令如下（待补全）：
-
 ```bash
-pnpm install              # 安装依赖（monorepo）
-pnpm dev                  # 并行启动 server + web
-pnpm --filter server dev  # 仅后端
-pnpm --filter web dev     # 仅前端
-pnpm --filter server test # 后端单测
-pnpm lint                 # 全仓 lint
+pnpm install                          # 安装依赖（monorepo）
+pnpm dev                              # 并行启动 server(:3000) + web(:5173)
+pnpm --filter @tools/server dev       # 仅后端
+pnpm --filter @tools/web dev          # 仅前端
+pnpm --filter @tools/server typecheck # 类型检查
+pnpm --filter @tools/server build     # 构建
+
+# 数据库（首次或 schema 变更后）
+pnpm --filter @tools/server exec prisma migrate dev
+pnpm --filter @tools/server db:seed   # 初始化 admin/admin（仅 dev）
 ```
+
+> 平台核心默认 dev 账号 `admin/admin`，生产请改密。配置由 `apps/server/.env`（复制自 `.env.example`）提供；SQLite 路径在运行时锚定到 `prisma/` 目录，不受启动 cwd 影响。
 
 ## 给后续开发的关键约束
 

@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ActionBus, AdapterEvent, LinkageRule } from '@tools/shared';
+import type { AuthUser } from '../platform/auth/auth.types';
+
+/** 联动触发使用的系统主体（admin 配置的规则，视作可信、旁路 RBAC）。 */
+const SYSTEM_USER: AuthUser = { id: 'system', username: 'system', isAdmin: true };
 import { ActionService } from './action.service';
 
 /**
@@ -46,7 +50,7 @@ export class ActionBusService implements ActionBus {
       if (rule.enabled === false) continue;
       const input = rule.map(event.payload);
       this.actions
-        .run(rule.targetActionId, input, 'system')
+        .run(rule.targetActionId, input, SYSTEM_USER)
         .catch((err) =>
           this.logger.error(
             `linkage ${event.id} -> ${rule.targetActionId} failed: ${String(err)}`,
